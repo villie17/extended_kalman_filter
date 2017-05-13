@@ -8,6 +8,10 @@
 #include "ground_truth_package.h"
 #include "measurement_package.h"
 
+#define MY_DEBUG
+#undef MY_DEBUG
+
+
 using namespace std;
 using Eigen::MatrixXd;
 using Eigen::VectorXd;
@@ -68,7 +72,9 @@ int main(int argc, char* argv[]) {
 
   // prep the measurement packages (each line represents a measurement at a
   // timestamp)
+  //int count =0;
   while (getline(in_file_, line)) {
+	//if (count++ == 4) break;
 
     string sensor_type;
     MeasurementPackage meas_package;
@@ -136,6 +142,11 @@ int main(int argc, char* argv[]) {
   for (size_t k = 0; k < N; ++k) {
     // start filtering from the second frame (the speed is unknown in the first
     // frame)
+#ifdef MY_DEBUG
+	cout << "K is ";
+	if (measurement_pack_list[k].sensor_type_ == MeasurementPackage::LASER) cout <<  "Laser"; else cout <<"Radar";
+	cout << "  " << k << endl;
+#endif
     fusionEKF.ProcessMeasurement(measurement_pack_list[k]);
 
     // output the estimation
@@ -165,6 +176,17 @@ int main(int argc, char* argv[]) {
 
     estimations.push_back(fusionEKF.ekf_.x_);
     ground_truth.push_back(gt_pack_list[k].gt_values_);
+
+
+#ifdef MY_DEBUG
+    Tools del_tool;
+    VectorXd acc = del_tool.CalculateRMSE(estimations, ground_truth);
+    cout << k << ": x RMSE:" <<  acc(0) << endl;
+    cout << k << ": y RMSE:" <<  acc(1) << endl;
+    cout << k << ": vX RMSE:" <<  acc(2) << endl;
+    cout << k << ": vY RMSE:" <<  acc(3) << endl;
+    cout << "=============="<< endl;
+#endif
   }
 
   // compute the accuracy (RMSE)
